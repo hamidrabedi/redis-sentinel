@@ -1,0 +1,66 @@
+version: '3.8'
+x-base: &base
+  image: redis:latest
+  networks: 
+    - redis_network
+
+x-base-sen: &base-sen
+  image: redis:latest
+  command: redis-server /sentinel/sentinel.conf --protected-mode no
+  networks: 
+    - redis_network
+
+services:
+  redis1:
+    <<: *base
+    hostname: redis1
+    container_name: redis-master
+    command: redis-server  --replica-announce-ip redis1 --slave-announce-ip redis1 --protected-mode no
+
+  redis2:
+    <<: *base
+    hostname: redis2
+    container_name: redis-slave1
+    command: redis-server --slaveof redis1 6379 --replica-announce-ip redis2 --slave-announce-ip redis2 --protected-mode no
+
+  redis3:
+    <<: *base
+    hostname: redis3
+    container_name: redis-slave2
+    command: redis-server --slaveof redis1 6379 --replica-announce-ip redis3 --slave-announce-ip redis3 --protected-mode no
+
+  sentinel1:
+    <<: *base-sen
+    hostname: sentinel1
+    container_name: redis-sentinel1
+    volumes:
+      - ./sentinel1:/sentinel
+    depends_on: 
+      - redis1
+      - redis2
+      - redis3
+
+  sentinel2:
+    <<: *base-sen
+    hostname: sentinel2
+    container_name: redis-sentinel2
+    volumes:
+      - ./sentinel2:/sentinel
+    depends_on: 
+      - redis1
+      - redis2
+      - redis3
+
+  sentinel3:
+    <<: *base-sen
+    hostname: sentinel3
+    container_name: redis-sentinel3
+    volumes:
+      - ./sentinel3:/sentinel
+    depends_on: 
+      - redis1
+      - redis2
+      - redis3
+
+networks:
+  redis_network:

@@ -1,0 +1,71 @@
+version: '3.8'
+networks:
+  app-tier:
+    driver: bridge
+services:
+  redis:
+    image: redis:latest
+    container_name: redis-master
+    # command: 'redis-server --requirepass redis_pwd'
+    environment:
+    #   REDIS_REPLICATION_MODE: master
+      ALLOW_EMPTY_PASSWORD: 'yes'
+    #   REDIS_AOF_ENABLED: 'no'
+    networks:
+      - app-tier
+    ports:
+      - '6379'
+  redis-slave:
+    image: redis:latest
+    container_name: redis-slave
+    volumes:
+      - ./redis.conf:/opt/redis/etc/redis.conf
+    command: 'redis-server /opt/redis/etc/redis.conf'
+    # environment:
+    #   REDIS_REPLICATION_MODE: slave
+    #   REDIS_MASTER_HOST: redis
+    #   REDIS_REPLICA_ANNOUNCE_IP: redis-slave
+    #   REDIS_SLAVE_ANNOUNCE_IP: redis-slave
+    #   ALLOW_EMPTY_PASSWORD: 'yes'
+    #   REDIS_AOF_ENABLED: 'no'
+    ports:
+      - '6379'
+    depends_on:
+      - redis
+    networks:
+      - app-tier
+  sentinel:
+    image: bitnami/redis-sentinel:latest
+    # container_name: redis-sentinel
+    # entrypoint: |
+    #   bash -c 'bash -s <<EOF
+    #   "/bin/bash" -c "cat <<EOF > /sentinel.conf
+    #   port 26379
+    #   dir /tmp
+    #   sentinel monitor redismaster redis 6379 2
+    #   sentinel down-after-milliseconds redismaster 3000
+    #   sentinel failover-timeout redismaster 6000
+    #   sentinel resolve-hostnames yes
+    #   sentinel announce-hostnames yes
+    #   sentinel announce-ip "sentinel"
+    #   EOF"
+    #   "/bin/bash" -c "redis-sentinel /sentinel.conf"    
+    #   EOF'
+    environment:
+      REDIS_MASTER_HOST: redis
+      ALLOW_EMPTY_PASSWORD: 'yes'
+      REDIS_AOF_ENABLED: 'no'
+      REDIS_SENTINEL_DOWN_AFTER_MILLISECONDS: 5000
+      REDIS_SENTINEL_FAILOVER_TIMEOUT: 60000
+      REDIS_SENTINEL_PARALLEL_SYNCS: 1
+      REDIS_SENTINEL_RESOLVE_HOSTNAMES: 'yes'
+      REDIS_SENTINEL_ANNOUNCE_HOSTNAMES: 'yes'
+
+    depends_on:
+      - redis
+      - redis-slave
+    ports:
+      - '26379-26381:26379'
+    networks:
+      - app-tier
+      

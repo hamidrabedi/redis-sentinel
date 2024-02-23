@@ -1,0 +1,80 @@
+version: '3.8' 
+
+services: 
+  redis: 
+    build:
+      context: .
+      dockerfile: ./Dockerfile 
+    container_name: redis 
+    restart: always 
+    volumes: 
+      - redis_data:/data 
+    command: redis-server /home/myuser/redis.conf
+    network_mode: "host"
+
+  redis-slave: 
+    build:
+      context: .
+      dockerfile: ./slave1/Dockerfile 
+    container_name: redis-slave 
+    restart: always 
+    volumes: 
+      - redis_data:/data 
+    command: redis-server /home/myuser/redis.conf
+    network_mode: "host"
+
+  redis-slave2: 
+    build:
+      context: .
+      dockerfile: ./slave2/Dockerfile 
+    container_name: redis-slave2 
+    restart: always 
+    volumes: 
+      - redis_data:/data 
+    command: redis-server /home/myuser/redis.conf
+    network_mode: "host"
+
+  sentinel1: 
+    build:
+      context: .
+      dockerfile: ./sentinel/Dockerfile
+    container_name: sentinel1
+    restart: always 
+    # volumes: 
+    #   - ./sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-server /home/myuser/sentinel.conf --sentinel 
+    network_mode: "host"
+    depends_on: 
+      - redis
+
+  sentinel2: 
+    build:
+      context: .
+      dockerfile: ./sentinel/Dockerfile
+    container_name: sentinel2
+    restart: always 
+    # volumes: 
+    #   - ./sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-server /home/myuser/sentinel.conf --sentinel 
+    network_mode: "host"
+    depends_on: 
+      - redis
+
+  sentinel3: 
+    build:
+      context: .
+      dockerfile: ./sentinel/Dockerfile
+    container_name: sentinel3
+    restart: always 
+    # volumes: 
+    #   - ./sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-server /home/myuser/sentinel.conf --sentinel 
+    network_mode: "host"
+    depends_on: 
+      - redis
+
+
+volumes: 
+  redis_data:
+networks:
+  redis_network:
